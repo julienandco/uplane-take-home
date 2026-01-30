@@ -12,6 +12,21 @@ const emit = defineEmits<{
 
 const isDeleting = ref(false)
 const showDeleteConfirm = ref(false)
+const showToast = ref(false)
+
+const copyToClipboard = async () => {
+  if (!props.file.processedUrl) return
+  
+  try {
+    await navigator.clipboard.writeText(props.file.processedUrl)
+    showToast.value = true
+    setTimeout(() => {
+      showToast.value = false
+    }, 2500)
+  } catch (err) {
+    console.error('Failed to copy URL:', err)
+  }
+}
 
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`
@@ -93,6 +108,17 @@ const cancelDelete = () => {
         </button>
         
         <button 
+          class="file-card__btn file-card__btn--icon"
+          @click="copyToClipboard"
+          title="Copy URL to clipboard"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        
+        <button 
           class="file-card__btn file-card__btn--delete"
           @click="handleDelete"
           title="Delete file"
@@ -106,6 +132,16 @@ const cancelDelete = () => {
           </svg>
         </button>
       </div>
+      
+      <!-- Toast notification -->
+      <Transition name="toast">
+        <div v-if="showToast" class="toast">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>URL copied to clipboard</span>
+        </div>
+      </Transition>
     </div>
     
     <!-- Delete Confirmation Modal -->
@@ -222,6 +258,7 @@ const cancelDelete = () => {
 }
 
 .file-card__content {
+  position: relative;
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -285,6 +322,19 @@ const cancelDelete = () => {
   transform: translateY(-1px);
 }
 
+.file-card__btn--icon {
+  padding: 0.625rem;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.file-card__btn--icon:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
 .file-card__btn--delete {
   padding: 0.625rem;
   background: transparent;
@@ -296,6 +346,49 @@ const cancelDelete = () => {
   background: rgba(239, 68, 68, 0.1);
   border-color: #ef4444;
   color: #ef4444;
+}
+
+/* Toast notification */
+.toast {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.toast svg {
+  color: #34d399;
+}
+
+.toast-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.toast-leave-active {
+  transition: all 0.15s ease-in;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
 }
 
 /* Modal styles */
