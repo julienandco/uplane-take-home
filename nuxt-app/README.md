@@ -1,75 +1,98 @@
-# Nuxt Minimal Starter
+# Image Processor
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+A polished image upload and processing application built with Nuxt 4 and Supabase.
 
-## Setup
+## Features
 
-Make sure to install dependencies:
+- 🎨 **Beautiful UI** - Dark theme with warm amber accents, distinctive typography
+- 📤 **Drag & Drop Upload** - Intuitive file upload with drag-and-drop support
+- ⏳ **Processing Feedback** - Engaging animations and fun facts while processing
+- 📥 **Download & Delete** - Full control over your processed images
+- 🔄 **Real-time Updates** - Supabase Realtime for instant processing status updates
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm or pnpm
+
+### Installation
 
 ```bash
-# npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+### Development
 
 ```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+The app will start in **demo mode** without Supabase credentials, simulating uploads and processing locally.
 
-Build the application for production:
+### Environment Variables
 
-```bash
-# npm
-npm run build
+To connect to Supabase, create a `.env` file with:
 
-# pnpm
-pnpm build
+```env
+# Your Supabase project URL
+VITE_SUPABASE_URL=https://your-project.supabase.co
 
-# yarn
-yarn build
-
-# bun
-bun run build
+# Your Supabase anonymous/public key
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Locally preview production build:
+## Project Structure
 
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+```
+app/
+├── app.vue                    # Root layout
+├── assets/
+│   └── css/
+│       └── main.css           # Global styles & design system
+├── components/
+│   ├── FileCard.vue           # Completed file with actions
+│   ├── FileUploader.vue       # Drag & drop upload zone
+│   ├── ProcessingState.vue    # Processing animation & fun facts
+│   └── UploadProgress.vue     # Upload progress indicator
+├── composables/
+│   └── useFileUpload.ts       # File management logic
+└── pages/
+    └── index.vue              # Main page
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## Supabase Integration
+
+The app is ready for Supabase integration with:
+
+1. **Storage** - Images are uploaded to Supabase Storage (`uploads` bucket)
+2. **Realtime** - Listens to `file_processing` table for status updates
+3. **Processing Flow**:
+   - Upload image → status: `uploading`
+   - Backend processes → status: `processing`
+   - Processing complete → status: `done`
+   - User can download processed file or delete
+
+### Expected Supabase Schema
+
+```sql
+-- Table to track file processing status
+create table file_processing (
+  id text primary key,
+  original_name text not null,
+  file_path text not null,
+  status text not null default 'processing',
+  processed_url text,
+  created_at timestamp with time zone default now()
+);
+
+-- Enable realtime
+alter publication supabase_realtime add table file_processing;
+```
+
+## Design System
+
+- **Font**: Satoshi (from Fontshare)
+- **Colors**: Deep charcoal background with warm amber accent
+- **Animations**: Smooth transitions, engaging processing spinner
