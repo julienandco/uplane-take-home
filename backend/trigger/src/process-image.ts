@@ -1,5 +1,6 @@
 import { task, logger } from "@trigger.dev/sdk/v3";
 import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
@@ -62,20 +63,31 @@ export const processImageTask = task({
 
     // Get the processed image as a buffer
     const imageBuffer = await removeBgResponse.arrayBuffer();
-    const imageData = new Uint8Array(imageBuffer);
 
     logger.info("Background removed successfully", {
-      imageSize: imageData.length,
+      imageSize: imageBuffer.byteLength,
     });
 
-    // Step 2: Upload to Supabase Storage
+    // Step 2: Process image with Sharp (e.g., flip horizontally)
+    logger.info("Processing image with Sharp (horizontal flip)");
+    
+    const processedImageBuffer = await sharp(Buffer.from(imageBuffer))
+      .flop()  // Flip horizontally
+      .png()   // Ensure output is PNG
+      .toBuffer();
+
+    logger.info("Sharp processing complete", {
+      processedSize: processedImageBuffer.length,
+    });
+
+    // Step 3: Upload to Supabase Storage
     const filePath = `${fileId}/processed`
 
     logger.info("Uploading to Supabase Storage", { filePath });
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(SUPABASE_BUCKET)
-      .upload(filePath, imageData, {
+      .upload(filePath, processedImageBuffer, {
         contentType: "image/png",
         upsert: false,
       });
