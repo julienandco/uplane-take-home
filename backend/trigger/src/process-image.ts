@@ -18,10 +18,23 @@ export const processImageTask = task({
     minTimeoutInMs: 1000,
     maxTimeoutInMs: 10000,
   },
-  run: async (payload: { imageUrl: string }) => {
-    const { imageUrl } = payload;
+  run: async (payload: { imageUrl: string, fileId: string }) => {
+    if(!SUPABASE_BUCKET) {
+      throw new Error("SUPABASE_STORAGE_BUCKET is not set");
+    }
+    const { imageUrl, fileId } = payload;
 
     logger.info("Starting image processing", { imageUrl });
+
+    const { error: startUpdateError } = await supabase.from('image_processing_tasks').update({
+      status: 'ongoing',
+    }).eq('id', fileId);
+
+    if(startUpdateError) {
+      // Be optimistic and continue with image processing
+      logger.error("Failed to update task status", { error: startUpdateError });
+      logger.error("Continuing with image processing", { imageUrl });
+    }
 
     // Step 1: Call remove.bg API to remove background
     const formData = new FormData();
@@ -56,8 +69,7 @@ export const processImageTask = task({
     });
 
     // Step 2: Upload to Supabase Storage
-    const fileName = `processed-${Date.now()}-${crypto.randomUUID()}.png`;
-    const filePath = `images/${fileName}`;
+    const filePath = `${fileId}/processed`
 
     logger.info("Uploading to Supabase Storage", { filePath });
 
@@ -83,11 +95,21 @@ export const processImageTask = task({
       publicUrl: publicUrlData.publicUrl,
     });
 
+    // Update the task status in the database
+    const { error: updateError } = await supabase.from('image_processing_tasks').update({
+      status: 'successful',
+      processed_image_url: publicUrlData.publicUrl,
+    }).eq('id', fileId);
+
+    if (updateError) {
+      logger.error("Failed to update task status", { error: updateError });
+    }
+
     return {
       originalUrl: imageUrl,
       processedPath: uploadData.path,
       publicUrl: publicUrlData.publicUrl,
-      fileName,
+      filePath,
     };
   },
 });
