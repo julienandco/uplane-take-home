@@ -15,6 +15,10 @@ const completedFiles = computed(() =>
   files.value.filter(f => f.status === 'successful')
 )
 
+const failedFiles = computed(() => 
+  files.value.filter(f => f.status === 'failed')
+)
+
 const hasActiveUploads = computed(() => 
   uploadingFiles.value.length > 0 || processingFiles.value.length > 0
 )
@@ -130,6 +134,26 @@ const handleDelete = (fileId: string) => {
                 :key="file.id" 
                 :file="file"
                 @download="handleDownload"
+                @delete="handleDelete"
+              />
+            </TransitionGroup>
+          </div>
+        </section>
+      </Transition>
+      
+      <!-- Failed Files -->
+      <Transition name="slide-fade">
+        <section v-if="failedFiles.length > 0" class="section">
+          <h2 class="section__title">
+            <span>Failed</span>
+            <span class="section__count section__count--error">{{ failedFiles.length }}</span>
+          </h2>
+          <div class="error-list">
+            <TransitionGroup name="list">
+              <ErrorCard 
+                v-for="file in failedFiles" 
+                :key="file.id" 
+                :file="file"
                 @delete="handleDelete"
               />
             </TransitionGroup>
@@ -327,8 +351,14 @@ const handleDelete = (fileId: string) => {
   color: #34d399;
 }
 
+.section__count--error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
 .upload-list,
-.processing-list {
+.processing-list,
+.error-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
