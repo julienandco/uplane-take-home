@@ -74,7 +74,7 @@ export function useFileUpload() {
       // If Supabase is configured, use real upload
       if (supabase.value) {
         const { error } = await supabase.value.storage
-          .from('uploads')
+          .from('images')
           .upload(fileName, file, {
             cacheControl: '3600',
             upsert: false,
@@ -84,7 +84,7 @@ export function useFileUpload() {
 
         // Get public URL
         const { data: urlData } = supabase.value.storage
-          .from('uploads')
+          .from('images')
           .getPublicUrl(fileName)
 
         updateFile(fileId, {
