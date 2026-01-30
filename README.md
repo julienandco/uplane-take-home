@@ -15,13 +15,27 @@ uplane-take-home/
 ```
 
 
-## Rough explanation
+## Architecture
 
-- User uploads image to supabase storage
-- This creates a new processing task
-- Frontend listens to status object of that task
-- The task triggers a call to trigger.dev
-- Trigger.dev handles the image processing (background removal + flipping)
-- when done, trigger.dev stores the processed image in supabase storage, sets the url for the new image and updates the status
-- Frontend shows new image
-- Possibility to delete the image
+### Processing Flow
+
+![Architecture Diagram](./architecture.png)
+
+### Components
+
+| Component | Purpose |
+|-----------|---------|
+| **Frontend** | [Nuxt 4](https://nuxt.com/) app handling uploads, real-time status updates, and file management |
+| **[Supabase](https://supabase.com/) Storage** | Stores original and processed images in the `images` bucket |
+| **Supabase Database** | Tracks processing tasks with status (`queued` → `ongoing` → `successful`/`failed`) |
+| **Supabase Edge Function** | Webhook listener that triggers async processing on new uploads |
+| **[Trigger.dev](https://trigger.dev/)** | Handles (possibly) CPU-intensive and lengthy asynchronous image processing (remove.bg API + transformations (horizontal flip) using [sharp](https://sharp.pixelplumbing.com/)) |
+
+### Data Flow
+
+1. **Upload** — User uploads image → stored in `images/{id}/raw`
+2. **Task Creation** — Storage webhook triggers Edge Function Execution
+3. **Async Processing** — Edge function creates a row in `image_processing_tasks` and triggers Trigger.dev task. Frontend listens to the status changes of the new row in `image_processing_tasks`.
+4. **Image Processing** — Background removal via remove.bg, then horizontal flip via Sharp
+5. **Completion** — Processed image stored in `images/{id}/processed`, task status updated
+6. **Real-time Update** — Frontend receives status change via Supabase Realtime, displays result
