@@ -8,11 +8,11 @@ const uploadingFiles = computed(() =>
 )
 
 const processingFiles = computed(() => 
-  files.value.filter(f => f.status === 'processing')
+  files.value.filter(f => f.status === 'queued' || f.status === 'ongoing')
 )
 
 const completedFiles = computed(() => 
-  files.value.filter(f => f.status === 'done')
+  files.value.filter(f => f.status === 'successful')
 )
 
 const hasActiveUploads = computed(() => 

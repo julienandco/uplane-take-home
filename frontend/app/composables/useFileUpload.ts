@@ -6,7 +6,7 @@ export interface UploadedFile {
   originalName: string
   size: number
   type: string
-  status: 'uploading' | 'processing' | 'done' | 'error'
+  status: 'uploading' | 'queued' | 'ongoing' | 'successful' | 'failed'
   progress: number
   url?: string
   processedUrl?: string
@@ -25,26 +25,27 @@ export function useFileUpload() {
     if (!supabase.value) return
 
     realtimeChannel.value = supabase.value
-      .channel('file-processing')
+      .channel('image-processing-tasks')
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'file_processing',
+          table: 'image_processing_tasks',
         },
         (payload) => {
-          const { id, status, processed_url } = payload.new as {
-            id: string
+          const { original_image_url, status, processed_image_url } = payload.new as {
+            original_image_url: string
             status: string
-            processed_url?: string
+            processed_image_url?: string
           }
           
-          const file = files.value.find(f => f.id === id)
+          // Match by original_image_url since DB id doesn't match frontend fileId
+          const file = files.value.find(f => f.url === original_image_url)
           if (file) {
             file.status = status as UploadedFile['status']
-            if (processed_url) {
-              file.processedUrl = processed_url
+            if (processed_image_url) {
+              file.processedUrl = processed_image_url
             }
           }
         }
@@ -55,11 +56,12 @@ export function useFileUpload() {
   // Upload file to Supabase storage
   const uploadFile = async (file: File): Promise<UploadedFile> => {
     const fileId = generateId()
-    const fileName = `${fileId}-${file.name}`
+    // Store file in folder: images/{fileId}/raw
+    const filePath = `${fileId}/raw`
     
     const uploadedFile: UploadedFile = {
       id: fileId,
-      name: fileName,
+      name: filePath,
       originalName: file.name,
       size: file.size,
       type: file.type,
@@ -73,64 +75,46 @@ export function useFileUpload() {
     try {
       // If Supabase is configured, use real upload
       if (supabase.value) {
-        const { error } = await supabase.value.storage
+        const { error: uploadError } = await supabase.value.storage
           .from('images')
-          .upload(fileName, file, {
+          .upload(filePath, file, {
             cacheControl: '3600',
             upsert: false,
           })
 
-        if (error) throw error
+        if (uploadError) throw uploadError
 
         // Get public URL
         const { data: urlData } = supabase.value.storage
           .from('images')
-          .getPublicUrl(fileName)
+          .getPublicUrl(filePath)
+
+        const publicUrl = urlData.publicUrl
+
+        // Create entry in image_processing_tasks table
+        const { error: dbError } = await supabase.value
+          .from('image_processing_tasks')
+          .insert({
+            original_image_url: publicUrl,
+          })
+
+        if (dbError) throw dbError
 
         updateFile(fileId, {
-          url: urlData.publicUrl,
-          status: 'processing',
+          url: publicUrl,
+          status: 'queued',
           progress: 100,
         })
-      } else {
-        // Mock upload for development without Supabase
-        await simulateUpload(fileId, file)
       }
 
       return files.value.find(f => f.id === fileId)!
     } catch (error) {
       updateFile(fileId, {
-        status: 'error',
+        status: 'failed',
         error: error instanceof Error ? error.message : 'Upload failed',
       })
       throw error
     }
-  }
-
-  // Simulate upload and processing for development
-  const simulateUpload = async (fileId: string, file: File) => {
-    // Simulate upload progress
-    for (let progress = 0; progress <= 100; progress += 10) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-      updateFile(fileId, { progress })
-    }
-
-    // Create a local URL for the file
-    const url = URL.createObjectURL(file)
-    updateFile(fileId, {
-      url,
-      status: 'processing',
-      progress: 100,
-    })
-
-    // Simulate processing time (3-6 seconds)
-    const processingTime = 3000 + Math.random() * 3000
-    await new Promise(resolve => setTimeout(resolve, processingTime))
-
-    updateFile(fileId, {
-      status: 'done',
-      processedUrl: url, // In real scenario, this would be different
-    })
   }
 
   // Update a file's properties
@@ -148,21 +132,12 @@ export function useFileUpload() {
 
     try {
       if (supabase.value) {
-        // Delete from Supabase storage
-        await supabase.value.storage.from('uploads').remove([file.name])
+        // Delete raw file from Supabase storage (images/{fileId}/raw)
+        await supabase.value.storage.from('images').remove([`${file.id}/raw`])
         
-        // If there's a processed file, delete that too
+        // If there's a processed file, delete that too (images/{fileId}/processed)
         if (file.processedUrl) {
-          const processedFileName = file.processedUrl.split('/').pop()
-          if (processedFileName) {
-            await supabase.value.storage.from('processed').remove([processedFileName])
-          }
-        }
-      } else {
-        // Revoke object URLs for mock uploads
-        if (file.url) URL.revokeObjectURL(file.url)
-        if (file.processedUrl && file.processedUrl !== file.url) {
-          URL.revokeObjectURL(file.processedUrl)
+          await supabase.value.storage.from('images').remove([`${file.id}/processed`])
         }
       }
 

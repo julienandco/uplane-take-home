@@ -50,8 +50,8 @@ const cancelDelete = () => {
   <div class="file-card" :class="{ 'file-card--deleting': isDeleting }">
     <div class="file-card__preview">
       <img 
-        v-if="file.url" 
-        :src="file.url" 
+        v-if="file.processedUrl" 
+        :src="file.processedUrl" 
         :alt="file.originalName"
         class="file-card__image"
       />
