@@ -1,11 +1,11 @@
-create type "public"."image_processing_status" as enum ('queued', 'ongoing', 'successful', 'failed');
+create type "public"."processing_status" as enum ('queued', 'ongoing', 'successful', 'failed');
 
 create table "public"."image_processing_tasks" (
   "id" uuid not null default gen_random_uuid(),
   "created_at" timestamp with time zone not null default now(),
   "original_image_url" text not null,
   "processed_image_url" text,
-  "status" public.image_processing_status not null default 'queued'::public.image_processing_status
+  "status" public.processing_status not null default 'queued'::public.processing_status
 );
 
 alter table "public"."image_processing_tasks" enable row level security;
