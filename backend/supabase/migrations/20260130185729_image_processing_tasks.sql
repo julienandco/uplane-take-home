@@ -75,3 +75,9 @@ CREATE POLICY "Anyone can read image processing tasks"
   ON image_processing_tasks FOR SELECT
   TO public
   USING (true);
+
+-- Create policy for public insert access
+CREATE POLICY "Anyone can insert image processing tasks"
+  ON image_processing_tasks FOR INSERT
+  TO public
+  USING (true);
