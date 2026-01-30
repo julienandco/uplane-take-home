@@ -29,7 +29,7 @@ export function useFileUpload() {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Listen to INSERT and UPDATE events
           schema: 'public',
           table: 'image_processing_tasks',
         },
@@ -73,7 +73,6 @@ export function useFileUpload() {
     files.value = [uploadedFile, ...files.value]
 
     try {
-      // If Supabase is configured, use real upload
       if (supabase.value) {
         const { error: uploadError } = await supabase.value.storage
           .from('images')
@@ -91,19 +90,10 @@ export function useFileUpload() {
 
         const publicUrl = urlData.publicUrl
 
-        // Create entry in image_processing_tasks table
-        const { error: dbError } = await supabase.value
-          .from('image_processing_tasks')
-          .insert({
-            id: fileId,
-            original_image_url: publicUrl,
-          })
-
-        if (dbError) throw dbError
-
+        // Update file with URL - the storage webhook will create the processing task
+        // and realtime subscription will update status to 'queued' when that happens
         updateFile(fileId, {
           url: publicUrl,
-          status: 'queued',
           progress: 100,
         })
       }

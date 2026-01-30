@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { tasks } from "https://esm.sh/@trigger.dev/sdk@3.3.17/v3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.5";
 import { InternalErrorResponse, OkResponse, SuccessResponse, UnprocessableContentResponse } from "../_shared/response.ts";
 import { z } from "https://esm.sh/zod@4.1.12";
 
@@ -43,13 +44,38 @@ Deno.serve(async (req) => {
     
     // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "http://host.docker.internal:54321"
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    
+    if (!supabaseServiceKey) {
+      console.error("SUPABASE_SERVICE_ROLE_KEY is not set")
+      return new InternalErrorResponse();
+    }
     
     // Construct the public URL for the uploaded image
     const imageUrl = `${supabaseUrl}/storage/v1/object/public/images/${objectName}`
     
-    console.log("Triggering process-image task:", { fileId, imageUrl })
+    console.log("Creating processing task and triggering:", { fileId, imageUrl })
 
     try {
+      // Create Supabase client with service role key
+      const supabase = createClient(supabaseUrl, supabaseServiceKey)
+      
+      // Create entry in image_processing_tasks table
+      const { error: dbError } = await supabase
+        .from('image_processing_tasks')
+        .insert({
+          id: fileId,
+          original_image_url: imageUrl,
+        })
+      
+      if (dbError) {
+        console.error("Error creating processing task:", dbError)
+        return new InternalErrorResponse();
+      }
+      
+      console.log("Processing task created, triggering Trigger.dev task")
+      
+      // Trigger the async processing task
       const run = await tasks.trigger(TASK_NAME, {
         imageUrl,
         fileId,
