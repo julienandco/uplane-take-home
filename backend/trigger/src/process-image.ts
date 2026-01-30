@@ -2,6 +2,26 @@ import { task, logger } from "@trigger.dev/sdk/v3";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 
+type SupportedFormat = 'png' | 'jpeg' | 'webp';
+
+const SUPPORTED_FORMATS: Record<string, SupportedFormat> = {
+  'jpg': 'jpeg',
+  'jpeg': 'jpeg',
+  'png': 'png',
+  'webp': 'webp',
+};
+
+const CONTENT_TYPES: Record<SupportedFormat, string> = {
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'webp': 'image/webp',
+};
+
+function getOutputFormat(imageUrl: string): SupportedFormat {
+  const extension = imageUrl.split('.').pop()?.toLowerCase().split('?')[0] || '';
+  return SUPPORTED_FORMATS[extension] || 'png';
+}
+
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -69,26 +89,43 @@ export const processImageTask = task({
     });
 
     // Step 2: Process image with Sharp (e.g., flip horizontally)
-    logger.info("Processing image with Sharp (horizontal flip)");
+    // Preserve original format (jpg, png, webp) or default to png
+    const outputFormat = getOutputFormat(imageUrl);
+    logger.info("Processing image with Sharp (horizontal flip)", { outputFormat });
     
-    const processedImageBuffer = await sharp(Buffer.from(imageBuffer))
-      .flop()  // Flip horizontally
-      .png()   // Ensure output is PNG
-      .toBuffer();
+    let sharpInstance = sharp(Buffer.from(imageBuffer)).flop();
+    
+    // Apply the appropriate output format
+    switch (outputFormat) {
+      case 'jpeg':
+        sharpInstance = sharpInstance.jpeg({ quality: 90 });
+        break;
+      case 'webp':
+        sharpInstance = sharpInstance.webp({ quality: 90 });
+        break;
+      case 'png':
+      default:
+        sharpInstance = sharpInstance.png();
+        break;
+    }
+    
+    const processedImageBuffer = await sharpInstance.toBuffer();
 
     logger.info("Sharp processing complete", {
       processedSize: processedImageBuffer.length,
+      format: outputFormat,
     });
 
     // Step 3: Upload to Supabase Storage
     const filePath = `${fileId}/processed`
+    const contentType = CONTENT_TYPES[outputFormat];
 
-    logger.info("Uploading to Supabase Storage", { filePath });
+    logger.info("Uploading to Supabase Storage", { filePath, contentType });
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(SUPABASE_BUCKET)
       .upload(filePath, processedImageBuffer, {
-        contentType: "image/png",
+        contentType,
         upsert: false,
       });
 
