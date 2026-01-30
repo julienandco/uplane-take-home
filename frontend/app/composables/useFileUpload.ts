@@ -95,6 +95,7 @@ export function useFileUpload() {
         const { error: dbError } = await supabase.value
           .from('image_processing_tasks')
           .insert({
+            id: fileId,
             original_image_url: publicUrl,
           })
 
@@ -173,7 +174,8 @@ export function useFileUpload() {
 
   // Generate unique ID
   const generateId = () => {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // Generate a UUID
+    return crypto.randomUUID()
   }
 
   // Cleanup on unmount
