@@ -1,0 +1,86 @@
+create type "public"."processing_status" as enum ('queued', 'ongoing', 'successful', 'failed');
+
+create table "public"."image_processing_tasks" (
+  "id" uuid not null default gen_random_uuid(),
+  "created_at" timestamp with time zone not null default now(),
+  "original_image_url" text not null,
+  "processed_image_url" text,
+  "status" public.processing_status not null default 'queued'::public.processing_status
+);
+
+alter table "public"."image_processing_tasks" enable row level security;
+
+CREATE UNIQUE INDEX image_processing_tasks_pkey ON public.image_processing_tasks USING btree (id);
+
+alter table "public"."image_processing_tasks" add constraint "image_processing_tasks_pkey" PRIMARY KEY using index "image_processing_tasks_pkey";
+
+grant delete on table "public"."image_processing_tasks" to "anon";
+
+grant insert on table "public"."image_processing_tasks" to "anon";
+
+grant references on table "public"."image_processing_tasks" to "anon";
+
+grant select on table "public"."image_processing_tasks" to "anon";
+
+grant trigger on table "public"."image_processing_tasks" to "anon";
+
+grant truncate on table "public"."image_processing_tasks" to "anon";
+
+grant update on table "public"."image_processing_tasks" to "anon";
+
+grant delete on table "public"."image_processing_tasks" to "authenticated";
+
+grant insert on table "public"."image_processing_tasks" to "authenticated";
+
+grant references on table "public"."image_processing_tasks" to "authenticated";
+
+grant select on table "public"."image_processing_tasks" to "authenticated";
+
+grant trigger on table "public"."image_processing_tasks" to "authenticated";
+
+grant truncate on table "public"."image_processing_tasks" to "authenticated";
+
+grant update on table "public"."image_processing_tasks" to "authenticated";
+
+grant delete on table "public"."image_processing_tasks" to "postgres";
+
+grant insert on table "public"."image_processing_tasks" to "postgres";
+
+grant references on table "public"."image_processing_tasks" to "postgres";
+
+grant select on table "public"."image_processing_tasks" to "postgres";
+
+grant trigger on table "public"."image_processing_tasks" to "postgres";
+
+grant truncate on table "public"."image_processing_tasks" to "postgres";
+
+grant update on table "public"."image_processing_tasks" to "postgres";
+
+grant delete on table "public"."image_processing_tasks" to "service_role";
+
+grant insert on table "public"."image_processing_tasks" to "service_role";
+
+grant references on table "public"."image_processing_tasks" to "service_role";
+
+grant select on table "public"."image_processing_tasks" to "service_role";
+
+grant trigger on table "public"."image_processing_tasks" to "service_role";
+
+grant truncate on table "public"."image_processing_tasks" to "service_role";
+
+grant update on table "public"."image_processing_tasks" to "service_role";
+
+-- Create policy for public read access
+CREATE POLICY "Anyone can read image processing tasks"
+  ON image_processing_tasks FOR SELECT
+  TO public
+  USING (true);
+
+-- Create policy for public insert access
+CREATE POLICY "Anyone can insert image processing tasks"
+  ON image_processing_tasks FOR INSERT
+  TO public
+  WITH CHECK (true);
+
+-- Enable realtime for this table
+alter publication supabase_realtime add table image_processing_tasks;
