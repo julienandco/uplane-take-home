@@ -1,22 +1,12 @@
 <script setup lang="ts">
 import type { UploadedFile } from '~/composables/useFileUpload'
+import { funFacts } from '~/data/funFacts'
 
 const props = defineProps<{
   file: UploadedFile
 }>()
 
-const funFacts = [
-  'Did you know? The first digital camera was invented in 1975.',
-  'Fun fact: Humans blink about 15-20 times per minute.',
-  'The average cloud weighs about 1.1 million pounds.',
-  'Honey never spoils. Archaeologists found 3000-year-old honey still edible.',
-  'Octopuses have three hearts and blue blood.',
-  'A group of flamingos is called a "flamboyance".',
-  'The shortest war in history lasted 38 to 45 minutes.',
-  'Bananas are berries, but strawberries aren\'t.',
-]
-
-const currentFactIndex = ref(0)
+const currentFactIndex = ref(Math.floor(Math.random() * funFacts.length))
 const currentFact = computed(() => funFacts[currentFactIndex.value])
 
 // Rotate through facts

@@ -6,7 +6,7 @@ const emit = defineEmits<{
 const isDragging = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
-const acceptedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp']
 const maxSizeMB = 10
 
 const handleDragOver = (e: DragEvent) => {
@@ -105,7 +105,7 @@ const triggerFileInput = () => {
       </div>
       
       <div class="uploader__hint">
-        <span>JPEG, PNG, GIF, WebP</span>
+        <span>JPEG, PNG, WebP</span>
         <span class="uploader__separator">•</span>
         <span>Max {{ maxSizeMB }}MB</span>
       </div>
