@@ -7,7 +7,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY!;
-const SUPABASE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "processed-images";
+const SUPABASE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET;
 
 export const processImageTask = task({
   id: "process-image",
