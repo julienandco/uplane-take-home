@@ -1,6 +1,6 @@
 # uplane-take-home
 
-A full-stack application that allows users to upload an image, process it through background removal and horizontal flipping, and then manage the resulting images.
+A full-stack application that allows users to upload an image, process it through background removal and horizontal flipping, and then manage the resulting images. Check it out [here](https://uplane-image-processing-8uyd5tgo1-julienandcos-projects.vercel.app/)!
 
 
 ## Repo Structure
